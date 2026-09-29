@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bingo de funciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --bg:#EAF0F8; --paper:#FFFFFF; --ink:#17244A; --muted:#56637F; --grid:#DCE6F2; --gridbg:#DDE7F3;
+  --axis:#17244A; --curve:#B3246B; --ok:#1C8354; --no:#C23B3B; --line:#C7D4E6; --focus:#2F6FDB;
+  --okbg:#DDF3E6; --nobg:#FBE4E4; --gold:#D29A12; --goldbg:#FCF1D6; --hud:#17244A; --hudink:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0F1726; --paper:#17223A; --ink:#E6ECF7; --muted:#9AA8C4; --grid:#243250; --gridbg:#172338;
+    --axis:#C9D4EA; --curve:#FF74B2; --ok:#52C98F; --no:#FF8080; --line:#2B3A58; --focus:#7FA8FF;
+    --okbg:#163527; --nobg:#3A1C22; --gold:#F0BD45; --goldbg:#3A2F14; --hud:#0A1120; --hudink:#E6ECF7;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5;
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--gridbg) 1px,transparent 1px),linear-gradient(90deg,var(--gridbg) 1px,transparent 1px);
+  background-size:26px 26px;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+.btn{border:2px solid var(--ink);background:var(--paper);border-radius:10px;padding:9px 18px;font-weight:700}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.accent{background:var(--curve);border-color:var(--curve);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* Barra superior */
+.hud{background:var(--hud);color:var(--hudink);position:sticky;top:0;z-index:20}
+.hud .wrap{display:flex;align-items:center;gap:10px;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.hud h1{font-size:1.2rem;margin:0 auto 0 0}
+.pill{background:color-mix(in srgb,var(--hudink) 12%,transparent);border-radius:999px;padding:4px 12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.low{background:var(--no);color:#fff}
+.hbtn{background:none;border:1px solid color-mix(in srgb,var(--hudink) 40%,transparent);color:var(--hudink);border-radius:999px;padding:4px 12px;font-size:.92rem}
+.hbtn[aria-pressed="false"]{opacity:.55}
+
+/* Inicio */
+.start{max-width:760px;margin:34px auto 50px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:30px}
+.start .emoji{font-size:2.6rem;line-height:1}
+.start h2{font-size:clamp(1.7rem,4.5vw,2.4rem);line-height:1.1;margin:8px 0 10px}
+.start p.lead{color:var(--muted);margin:0 0 22px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:.95rem}
+.form label.wide{grid-column:1/-1}
+.form input,.form select{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--bg);font-weight:400}
+.form input:focus,.form select:focus{border-color:var(--focus);outline:none}
+.form .err{color:var(--no);font-weight:700;font-size:.92rem;grid-column:1/-1;margin:0}
+.start .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.patterns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+
+/* Juego */
+.play{display:grid;grid-template-columns:minmax(300px,520px) 1fr;grid-template-areas:'card ex' 'card hist';grid-template-rows:auto 1fr;gap:22px;margin:20px 0 40px;align-items:start}
+.cardp{grid-area:card}.exercise{grid-area:ex}.histp{grid-area:hist}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px}
+.cardhead h2{margin:0;font-size:1.3rem}
+.cardhead small{color:var(--muted)}
+.letters{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:12px}
+.letters span{display:grid;place-items:center;font-weight:700;color:#fff;background:var(--curve);border-radius:8px;font-size:1.25rem;padding:3px 0}
+.cells{display:grid;grid-template-columns:repeat(var(--n,5),1fr);gap:5px;margin-top:5px}
+.cells.n3{font-size:1.45em;gap:8px}.cells.n4{font-size:1.15em;gap:6px}
+.cells.n3 .cell{aspect-ratio:1.35;border-radius:12px}
+.cell{position:relative;border:2px solid var(--line);border-radius:9px;aspect-ratio:1.1;display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;overflow:hidden;background:var(--paper);color:var(--ink);font-size:inherit}
+.cell .v{font-size:1.2em;line-height:1.1}
+.cell.md .v{font-size:.95em} .cell.sm .v{font-size:.8em} .cell.xs .v{font-size:.66em}
+button.cell:hover:not(:disabled){border-color:var(--ink)}
+.cell.target{border-style:dashed;border-color:var(--gold)}
+.cell.sel{border:3px solid var(--focus);background:color-mix(in srgb,var(--focus) 12%,var(--paper));transform:scale(1.04)}
+.cell.free{background:var(--curve);border-color:var(--curve);color:#fff;font-weight:700;font-size:.8em}
+.cell.marked{background:var(--okbg);border-color:var(--ok)}
+.cell.marked::after{content:"";position:absolute;inset:5%;border:3px solid var(--ok);border-radius:50%;opacity:.55}
+.cell.lost{background:var(--nobg);border-color:var(--no);opacity:.8}
+.cell.lost::after{content:"✕";position:absolute;right:4px;top:0;color:var(--no);font-weight:700}
+.cell.flash{animation:flash .5s 3}
+.cell:disabled{cursor:default}
+@keyframes flash{50%{box-shadow:0 0 0 4px var(--gold)}}
+.goal{margin-top:12px;background:var(--goldbg);border-radius:10px;padding:8px 12px;font-size:.95rem}
+.answerbar{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.answerbar .chosen{flex:1;min-width:150px;border:2px dashed var(--line);border-radius:10px;padding:8px 12px;color:var(--muted);min-height:46px;display:flex;align-items:center;gap:8px}
+.answerbar .chosen.has{border-style:solid;border-color:var(--focus);color:var(--ink)}
+.exhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.exhead h2{margin:0;font-size:1.3rem}
+.tag{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:.85rem;color:var(--muted);font-weight:700}
+.gtag{margin-left:auto;color:var(--curve);font-weight:700}
+.exbody{display:grid;grid-template-columns:minmax(200px,1fr) 1fr;gap:16px;margin-top:12px;align-items:start}
+.exbody svg{width:100%;height:auto;display:block}
+.q{font-size:1.35rem;font-weight:700;line-height:1.3}
+.cap{font-size:.8rem;color:var(--muted);margin-top:4px}
+.fb{margin-top:14px;border-radius:12px;padding:12px 14px;border:2px solid var(--line)}
+.fb.ok{border-color:var(--ok);background:var(--okbg)} .fb.no{border-color:var(--no);background:var(--nobg)} .fb.try{border-color:var(--gold);background:var(--goldbg)}
+.fb b{display:block;font-size:1.08rem}
+.fb p{margin:4px 0 0;color:var(--muted)}
+.fb .btn{margin-top:10px}
+.hist{margin:0}
+.hist h3{margin:0 0 6px;font-size:1.05rem}
+.hist ol{margin:0;padding-left:22px;max-height:220px;overflow:auto;font-size:.93rem}
+.hist li{margin:3px 0}
+.hist .empty{color:var(--muted);font-size:.93rem}
+.endrow{margin-top:14px;text-align:right}
+
+/* Pausa y celebración */
+.overlay{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);display:grid;place-items:center;text-align:center;padding:20px}
+.overlay .box{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:30px 36px;max-width:440px}
+.overlay .big{font-size:3rem;line-height:1}
+.overlay h2{margin:10px 0 6px;font-size:1.8rem}
+.overlay p{color:var(--muted);margin:0 0 16px}
+.bingo-word{font-size:clamp(3rem,12vw,6rem);font-weight:700;color:var(--curve);letter-spacing:.04em;line-height:1}
+dialog{border:0;border-radius:16px;padding:24px;max-width:620px;width:94vw;background:var(--paper);color:var(--ink)}
+dialog::backdrop{background:rgba(10,17,32,.55)}
+dialog h2{margin-top:0}
+dialog li{margin:6px 0}
+
+/* Reporte */
+.report{max-width:900px;margin:26px auto 50px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:28px}
+.report .top{text-align:center}
+.report .top .emoji{font-size:2.6rem}
+.report h2{margin:4px 0;font-size:2rem}
+.who{color:var(--muted);text-align:center}
+.who b{color:var(--ink)}
+.result{text-align:center;font-weight:700;font-size:1.15rem;margin-top:6px}
+.result.win{color:var(--ok)} .result.lose{color:var(--no)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:22px 0}
+.stats div{background:var(--bg);border-radius:12px;padding:12px;text-align:center;color:var(--muted);font-size:.9rem}
+.stats b{display:block;font-size:1.7rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.report .final{max-width:460px;margin:0 auto}
+.report h3{text-align:center}
+.save{text-align:center;color:var(--muted);margin-top:14px;font-size:.92rem}
+.report .actions{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.detail{margin-top:22px}
+.detail ol{padding-left:22px;font-size:.92rem}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:60}
+.confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+footer{color:var(--muted);font-size:.86rem;text-align:center;padding:0 16px 30px}
+
+@media (max-width:900px){
+  .play{grid-template-columns:1fr;grid-template-areas:'ex' 'card' 'hist';gap:14px;margin-top:14px}
+  .exbody{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .form{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  .hud .lbl{display:none}
+  .hud h1{font-size:1rem}
+  .pill{padding:3px 9px;font-size:.92rem}
+  .cells,.letters{gap:3px}
+  .cells{font-size:clamp(9px,3.1vw,17px)}
+  .cells.n3{font-size:clamp(13px,5.2vw,24px)}
+  .cells.n4{font-size:clamp(11px,4vw,20px)}
+  .cell{padding:1px;border-width:1.5px;border-radius:7px}
+  .letters span{font-size:1rem}
+  .panel{padding:12px}
+  .q{font-size:1.15rem}
+}
+@media print{
+  body{background:#fff}
+  .hud,.noprint,footer{display:none!important}
+  .report{border:0;margin:0;padding:0}
+  .letters span,.cell.free,.cell.marked,.cell.lost{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hud">
+  <div class="wrap">
+    <h1>🎯 Bingo de funciones</h1>
+    <span class="pill" id="clock" aria-label="Tiempo restante">⏱ 8:00</span>
+    <span class="pill" id="pts" aria-label="Puntos">⭐ 0</span>
+    <span class="pill" id="acc" aria-label="Precisión">✅ 0%</span>
+    <button class="hbtn" id="soundBtn" aria-pressed="true">🔊<span class="lbl"> Sonido</span></button>
+    <button class="hbtn" id="fsBtn" aria-label="Pantalla completa">⛶<span class="lbl"> Pantalla completa</span></button>
+    <button class="hbtn" id="pauseBtn" aria-label="Pausa" hidden>⏸<span class="lbl"> Pausa</span></button>
+  </div>
+</header>
+
+<!-- ============ INICIO ============ -->
+<main id="startView" class="wrap">
+  <section class="start">
+    <div class="emoji" aria-hidden="true">📈🎉</div>
+    <h2>Lea la gráfica, marque y complete el patrón</h2>
+    <p class="lead">El bingo usa un banco de preguntas sobre gráficas de funciones. Cada respuesta del cartón tiene una única pregunta asociada: las respuestas se eligen al azar, se mezclan sus posiciones y también cambia el orden de las preguntas.</p>
+    <div class="form">
+      <label>Grupo o sección<input id="fGroup" placeholder="Ej. 10-3" autocomplete="off"></label>
+      <label>Código de la sesión (opcional)<input id="fCode" placeholder="Ej. FUN26" autocomplete="off"></label>
+      <label class="wide">Nombre del estudiante<input id="fName" placeholder="Nombre y apellido" autocomplete="off"></label>
+      <label>Tamaño del cartón
+        <select id="fSize">
+          <option value="3" selected>3 × 3 (9 casillas, 8 minutos)</option>
+          <option value="4">4 × 4 (16 casillas, 12 minutos)</option>
+          <option value="5">5 × 5 (24 casillas y centro libre, 15 minutos)</option>
+        </select>
+      </label>
+      <label>Tipo de bingo
+        <select id="fPattern">
+          <option value="row">Una línea horizontal</option>
+          <option value="col">Una línea vertical</option>
+          <option value="diag">Una diagonal</option>
+          <option value="corners">Las cuatro esquinas</option>
+          <option value="full">Cartón lleno</option>
+        </select>
+      </label>
+      <p class="err" id="fErr" hidden></p>
+    </div>
+    <div class="actions">
+      <button class="btn accent" id="startBtn">Comenzar bingo</button>
+      <button class="btn" id="helpBtn">Ver instrucciones</button>
+    </div>
+  </section>
+</main>
+
+<!-- ============ JUEGO ============ -->
+<main id="playView" class="wrap" hidden>
+  <div class="play">
+    <section class="panel cardp">
+      <div class="cardhead"><h2 id="cardTitle">Cartón de</h2><small>Cartón personalizado: respuestas y posiciones aleatorias</small></div>
+      <div class="letters" aria-hidden="true"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+      <div class="cells" id="cells"></div>
+      <div class="goal" id="goal"></div>
+      <div class="answerbar">
+        <div class="chosen" id="chosen">Toque en el cartón la casilla con la respuesta</div>
+        <button class="btn primary" id="answerBtn" disabled>Responder</button>
+      </div>
+    </section>
+    <section class="panel exercise">
+      <div class="exhead"><h2 id="exNum">Ejercicio 1</h2><span class="tag" id="exCat"></span><span class="gtag" id="exGraph"></span></div>
+      <div class="exbody">
+        <div><div id="exSvg"></div><div class="cap">Punto relleno: incluido. Círculo abierto: excluido.</div></div>
+        <div class="q" id="exQ"></div>
+      </div>
+      <div class="fb" id="fb" hidden></div>
+    </section>
+    <section class="panel histp">
+      <div class="hist">
+        <h3>Historial</h3>
+        <p class="empty" id="histEmpty">Aquí aparecerán las preguntas resueltas.</p>
+        <ol id="hist"></ol>
+      </div>
+      <div class="endrow"><button class="btn" id="finishBtn">Finalizar actividad</button></div>
+    </section>
+  </div>
+</main>
+
+<!-- ============ REPORTE ============ -->
+<main id="reportView" class="wrap" hidden>
+  <section class="report">
+    <div class="top"><div class="emoji" aria-hidden="true">📊</div><h2>Reporte final</h2></div>
+    <p class="who" id="who"></p>
+    <p class="result" id="result"></p>
+    <div class="stats">
+      <div><b id="rPts">0</b>Puntos</div>
+      <div><b id="rAcc">0%</b>Precisión</div>
+      <div><b id="rOk">0</b>Correctas</div>
+      <div><b id="rTime">0:00</b>Tiempo</div>
+      <div><b id="rCells">0</b>Casillas marcadas</div>
+    </div>
+    <h3>Cartón final</h3>
+    <div class="final">
+      <div class="letters" aria-hidden="true"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+      <div class="cells" id="rCard"></div>
+    </div>
+    <div class="detail"><h3>Detalle de respuestas</h3><ol id="rDetail"></ol></div>
+    <p class="save" id="saveMsg" hidden></p>
+    <div class="actions noprint">
+      <button class="btn accent" id="againBtn">Jugar nuevamente</button>
+      <button class="btn" id="printBtn">Imprimir</button>
+    </div>
+  </section>
+</main>
+
+<footer>Preguntas basadas en la práctica de la Prof. Gabriela Mora Víquez, Liceo Braulio Carrillo Colina, décimo año. Versión interactiva: Bach. Josué Méndez Vega.</footer>
+
+<div class="overlay" id="pauseOv" hidden><div class="box"><div class="big">⏸</div><h2>Actividad en pausa</h2><p>El tiempo está detenido.</p><button class="btn accent" id="resumeBtn">Continuar</button></div></div>
+<div class="overlay" id="winOv" hidden><div class="box"><div class="big">🧮🎉</div><div class="bingo-word">¡BINGO!</div><p id="winMsg"></p><button class="btn accent" id="toReport">Ver reporte</button></div></div>
+
+<dialog id="help">
+  <h2>Instrucciones</h2>
+  <ol>
+    <li>Escriba su grupo, su nombre y elija el tipo de bingo. El código de sesión lo da el docente, si lo usa.</li>
+    <li>Aparece una gráfica con una pregunta. Resuélvala y toque en el cartón la casilla con la respuesta.</li>
+    <li>Presione «Responder». Si acierta, la casilla queda marcada. Si falla, tiene un segundo intento; si vuelve a fallar, la casilla se pierde.</li>
+    <li>Gana al completar el patrón elegido antes de que se acabe el tiempo. En el cartón de 5 × 5 la casilla del centro es libre.</li>
+    <li>Puntos: 10 por acierto al primer intento, 5 al segundo, 50 extra por completar el bingo y un bono por el tiempo que sobre.</li>
+  </ol>
+  <button class="btn primary" id="helpClose">Entendido</button>
+</dialog>
+
+<script>
+
+/* item: [letra, enunciado, respuesta (null = abierta), latex, explicación, flexible en extremos] */
+const P = [
+{n:1, g:{xr:[-5,5], yr:[-5,5],
+  segs:[{p:[[-3,4],[-4.8,4]],e:1},{p:[[-3,2],[-2,2]]},{p:[[-2,-3],[2,1]]},{p:[[2,3],[4.8,3]],e:1}],
+  dots:[[-3,4,1],[-3,2],[-2,2],[-2,-3,1],[2,1],[2,3,1]],
+  guides:[[-3,4,-3,0],[-2,2,-2,-3],[-2,-3,0,-3],[2,3,2,0],[2,1,0,1]],
+  labels:[['h',2.35,3.45]]},
+ items:[
+  ['a','$D_h$:','R','\\mathbb{R}','La gráfica cubre todo el eje x: flecha a la izquierda, tramos en [−3, −2] y ]−2, 2], y flecha a la derecha.'],
+  ['b','$A_h$:',']-3,1] u {2,3,4}',']-3,\\,1]\\cup\\{2,\\,3,\\,4\\}','Alturas: 4 (para x < −3), 2 (en [−3, −2]), el segmento de −3 (abierto) a 1, y 3 (para x > 2).'],
+  ['c','$h(2)=$','1','1','En x = 2 el punto relleno está en y = 1; el círculo abierto (2, 3) no cuenta.'],
+  ['d','$h(-2)=$','2','2','En x = −2 el punto relleno es (−2, 2); el punto (−2, −3) es abierto.'],
+  ['e','La imagen de $0$:','-1','-1','La imagen de 0 es h(0): el segmento corta el eje y en −1.'],
+  ['f','La preimagen de $4$:',']-∞,-3[',']-\\infty,\\,-3[','Todas las x con altura 4: el rayo a la izquierda de −3 (abierto en −3).'],
+  ['g','$h(x)>0$:',']-∞,-2] u ]1,∞[',']-\\infty,\\,-2]\\cup\\,]1,\\,+\\infty[','Positiva para x ≤ −2 (alturas 4 y 2) y a partir del corte del segmento en x = 1.'],
+  ['h','$h(x)<0$:',']-2,1[',']-2,\\,1[','Negativa donde el segmento está bajo el eje x: entre −2 y 1.']
+ ]},
+{n:2, g:{xr:[-4,8], yr:[-2,5],
+  segs:[{p:[[-3.5,3.5],[0,0],[3,4],[7,0],[7.6,-0.6]],s:1,e:1}],
+  dots:[[0,0],[3,4],[7,0]],
+  guides:[[0,4,3,4],[3,4,3,0]]},
+ items:[
+  ['q','$D_f$:','R','\\mathbb{R}','Las dos flechas indican que la gráfica sigue hacia ambos lados.'],
+  ['r','$A_f$:',']-∞,4]',']-\\infty,\\,4]','El punto más alto es (3, 4); hacia abajo las flechas siguen sin límite.'],
+  ['s','$f(3)=$','4','4','El vértice (3, 4) indica f(3) = 4.'],
+  ['t','$f(0)=$','0','0','La gráfica pasa por el origen.'],
+  ['u','La imagen de $4$:','3','3','El tramo de (3, 4) a (7, 0) baja 1 por cada unidad que avanza, así que f(4) = 3.'],
+  ['v','La preimagen de $0$:','0,7','0 \\text{ y } 7','Cortes con el eje x: x = 0 y x = 7.'],
+  ['w','$f$ creciente:',']0,3[',']0,\\,3[','Sube desde (0, 0) hasta (3, 4).',1],
+  ['x','$f$ decreciente:',']-∞,0[ u ]3,∞[',']-\\infty,\\,0[\\,\\cup\\,]3,\\,+\\infty[','Baja antes de x = 0 y después de x = 3.',1]
+ ]},
+{n:3, g:{xr:[-3,3], yr:[-2,2],
+  segs:[{p:[[0,1],[-2.7,-0.35]],e:1},{p:[[0,1],[1,-1]]}],
+  dots:[[0,1],[0.5,0],[1,-1,1]],
+  guides:[[0,-1,1,-1],[1,0,1,-1]]},
+ items:[
+  ['i','$D_f$:',']-∞,1[',']-\\infty,\\,1[','El rayo sigue sin límite a la izquierda; a la derecha termina en x = 1 con círculo abierto.'],
+  ['j','$A_f$:',']-∞,1]',']-\\infty,\\,1]','El punto más alto es (0, 1) y el rayo baja sin límite.'],
+  ['k','$f(0)=$','1','1','Punto relleno en (0, 1).'],
+  ['l','$f(-2)=$','0','0','El rayo corta el eje x en (−2, 0).'],
+  ['m','La imagen de $0$:','1','1','La imagen de 0 es f(0) = 1.'],
+  ['n','La preimagen de $-1$:','-4','-4','(1, −1) es abierto, no cuenta. El rayo pasa por (−2, 0) y (0, 1): sube 1 cada 2 unidades, por lo que llega a y = −1 en x = −4.'],
+  ['o','$f$ creciente:',']-∞,0[',']-\\infty,\\,0[','Sube hasta llegar a (0, 1).',1],
+  ['p','$f$ decreciente:',']0,1[',']0,\\,1[','Baja desde (0, 1) hasta (1, −1).',1]
+ ]},
+{n:4, g:{xr:[-3,4], yr:[-2,3],
+  fns:[{f:x=>2-2*(x+2)**2/25,a:-2,b:3.35,e:1}],
+  dots:[[-2,2],[3,0]],
+  guides:[[-2,2,0,2],[-2,2,-2,0]]},
+ items:[
+  ['a','$D_f$:','[-2,∞[','[-2,\\,+\\infty[','Empieza en x = −2 (punto relleno) y la flecha sigue a la derecha.'],
+  ['b','$A_f$:',']-∞,2]',']-\\infty,\\,2]','El máximo es (−2, 2); la curva baja sin límite.'],
+  ['c','$f(-2)=$','2','2','Punto relleno (−2, 2).'],
+  ['d','La imagen de $3$:','0','0','La curva corta el eje x en x = 3.'],
+  ['e','La preimagen de $2$:','-2','-2','Solo el punto (−2, 2) tiene altura 2.'],
+  ['f','$f$ decreciente:',']-2,∞[',']-2,\\,+\\infty[','La curva baja en todo su recorrido.',1],
+  ['g','Un cero de la función:','3','3','Corte con el eje x en x = 3.']
+ ]},
+{n:5, g:{xr:[-3,4], yr:[-4,3],
+  segs:[{p:[[-2,-3],[-1,2],[1,-2],[3,1]]}],
+  dots:[[-2,-3],[-1,2],[1,-2],[3,1]],
+  guides:[[-2,-3,0,-3],[-2,-3,-2,0],[-1,2,0,2],[-1,2,-1,0],[1,-2,0,-2],[1,-2,1,0],[3,1,0,1],[3,1,3,0]],
+  labels:[['f',2.05,-0.75]]},
+ items:[
+  ['g','$D_f$:','[-2,3]','[-2,\\,3]','Va de x = −2 a x = 3, con ambos extremos rellenos.'],
+  ['h','$A_f$:','[-3,2]','[-3,\\,2]','Mínimo −3 en (−2, −3) y máximo 2 en (−1, 2).'],
+  ['i','$f(3)=$','1','1','Punto (3, 1).'],
+  ['j','$f(-1)=$','2','2','Punto (−1, 2).'],
+  ['k','La imagen de $1$:','-2','-2','Punto (1, −2).'],
+  ['l','$-2$ es preimagen de:','-3','-3','−2 es preimagen de f(−2) = −3.'],
+  ['m','$f$ creciente:',']-2,-1[ u ]1,3[',']-2,\\,-1[\\,\\cup\\,]1,\\,3[','Sube de x = −2 a x = −1 y de x = 1 a x = 3.',1],
+  ['n','$f$ decreciente:',']-1,1[',']-1,\\,1[','Baja de (−1, 2) a (1, −2).',1]
+ ]},
+{n:6, g:{xr:[-3,3], yr:[-3,4],
+  fns:[{f:x=>x**3/4,a:0,b:-2.25,e:1},{f:x=>1+x**3/8,a:0,b:2.85,e:1}],
+  dots:[[0,0],[0,1,1]],
+  guides:[[0,2,2,2],[2,2,2,0]]},
+ items:[
+  ['a','$D_f$:','R','\\mathbb{R}','Ambas ramas continúan (flechas) y en x = 0 la función vale 0.'],
+  ['b','$A_f$:',']-∞,0] u ]1,∞[',']-\\infty,\\,0]\\cup\\,]1,\\,+\\infty[','La rama izquierda toma valores ≤ 0; la derecha, valores mayores que 1 (círculo abierto en (0, 1)).'],
+  ['c','$f(0)=$','0','0','Punto relleno en el origen; (0, 1) es abierto.'],
+  ['d','La imagen de $3$:',null,'\\text{No se puede leer}','La gráfica no marca ningún valor en x = 3, así que no se puede determinar con exactitud. Buena pregunta para comentar en clase.'],
+  ['e','$2$ es preimagen de:','2','2','Las líneas punteadas marcan f(2) = 2.'],
+  ['f','$f$ creciente:','R','\\mathbb{R}','Las dos ramas suben y el salto en x = 0 también es hacia arriba. Se acepta ℝ o ]−∞, 0[ ∪ ]0, +∞[.',1],
+  ['g','Un cero de la función:','0','0','La gráfica toca el eje x solo en el origen.']
+ ]},
+{n:7, g:{xr:[-3,3], yr:[-2,3],
+  segs:[{p:[[0,2],[-2.8,2]],e:1},{p:[[0,-1],[2.8,-1]],e:1}],
+  dots:[[0,2],[-1,2],[0,-1,1],[1,-1]],
+  guides:[[-1,2,-1,0],[1,-1,1,0]]},
+ items:[
+  ['a','$D_f$:','R','\\mathbb{R}','Flechas hacia ambos lados; en x = 0 vale 2 (punto relleno).'],
+  ['b','$A_f$:','{-1,2}','\\{-1,\\,2\\}','La función solo toma dos alturas.'],
+  ['c','$f(2)=$','-1','-1','Para x > 0 la altura es −1.'],
+  ['d','La imagen de $-2$:','2','2','Para x ≤ 0 la altura es 2.'],
+  ['e','$2$ es preimagen de:','-1','-1','2 es preimagen de f(2) = −1.']
+ ]},
+{n:8, g:{xr:[-3,4], yr:[-2,3],
+  segs:[{p:[[-2,1],[1,1],[1.8,2],[3,0],[3.35,-0.58]],e:1}],
+  dots:[[-2,1],[1,1],[1.8,2],[3,0]],
+  guides:[[-2,1,-2,0],[1,1,1,0],[1.8,2,1.8,0],[1.8,2,0,2]]},
+ items:[
+  ['a','$D_f$:','[-2,∞[','[-2,\\,+\\infty[','Empieza en (−2, 1), punto relleno, y la flecha sigue a la derecha.'],
+  ['b','$A_f$:',']-∞,2]',']-\\infty,\\,2]','El máximo es 2; la flecha baja sin límite.'],
+  ['c','$f(3)=$','0','0','Punto (3, 0).'],
+  ['d','$f(1)=$','1','1','Punto (1, 1).'],
+  ['e','La imagen de $0$:','1','1','f(0) = 1, sobre el tramo horizontal.'],
+  ['f','$-2$ es preimagen de:','1','1','f(−2) = 1.'],
+  ['g','$f(x)>0$:','[-2,3[','[-2,\\,3[','Está sobre el eje desde x = −2 (incluido) hasta x = 3 (no incluido).'],
+  ['h','$f(x)<0$:',']3,∞[',']3,\\,+\\infty[','Después de x = 3 la gráfica queda bajo el eje.']
+ ]},
+{n:9, g:{xr:[-4,4], yr:[-3,4],
+  segs:[{p:[[-3.5,1],[-3,0],[-2,-2],[1,0],[2,3],[3,0]],s:1}],
+  dots:[[-3,0],[-2,-2],[1,0],[2,3],[3,0]],
+  guides:[[-2,-2,-2,0],[-2,-2,0,-2],[2,3,2,0],[2,3,0,3]]},
+ items:[
+  ['a','$D_f$:',']-∞,3]',']-\\infty,\\,3]','La flecha sigue a la izquierda; termina en (3, 0) con punto relleno.'],
+  ['b','$A_f$:','[-2,∞[','[-2,\\,+\\infty[','El mínimo es −2 y la flecha sube sin límite.'],
+  ['c','$f(2)=$','3','3','Punto (2, 3).'],
+  ['d','$f(-2)=$','-2','-2','Punto (−2, −2).'],
+  ['e','La imagen de $1$:','0','0','f(1) = 0.'],
+  ['f','$-2$ es preimagen de:','-2','-2','f(−2) = −2.'],
+  ['g','$f(x)>0$:',']-∞,-3[ u ]1,3[',']-\\infty,\\,-3[\\,\\cup\\,]1,\\,3[','Sobre el eje antes de x = −3 y entre x = 1 y x = 3.'],
+  ['h','$f(x)<0$:',']-3,1[',']-3,\\,1[','Bajo el eje entre x = −3 y x = 1.']
+ ]},
+{n:10, g:{xr:[-5,9], yr:[-5,4],
+  fns:[{f:x=>0.3+0.07*(2-x)**2,a:2,b:-4.4,e:1},
+       {f:x=>-4+3*((4-x)/2)**2,a:2,b:4},
+       {f:x=>-4+2*Math.sin(Math.PI*(x-4)/8)**2,a:4,b:8}],
+  dots:[[2,0.3,1],[2,-1],[4,-4],[8,-2]],
+  guides:[[2,-1,0,-1],[4,-4,0,-4],[4,-4,4,0],[8,-2,0,-2],[8,-2,8,0]]},
+ items:[
+  ['a','$D_f$:',']-∞,8]',']-\\infty,\\,8]','Flecha a la izquierda; termina en (8, −2) con punto relleno.'],
+  ['b','$A_f$:',null,'[-4,\\,-1]\\cup\\,]k,\\,+\\infty[','k es la altura del círculo abierto en x = 2. La gráfica no indica ese valor (está entre 0 y 1), así que solo la parte [−4, −1] se lee con exactitud.'],
+  ['c','$f(2)=$','-1','-1','En x = 2 el punto relleno es (2, −1).'],
+  ['d','$f(4)=$','-4','-4','Mínimo en (4, −4).'],
+  ['e','La imagen de $8$:','-2','-2','Punto (8, −2).'],
+  ['f','$-4$ es imagen de:','4','4','El mínimo (4, −4).'],
+  ['g','$f(x)>0$:',']-∞,2[',']-\\infty,\\,2[','La rama izquierda está sobre el eje, sin incluir x = 2.'],
+  ['h','$f(x)<0$:','[2,8]','[2,\\,8]','Desde x = 2 (punto relleno en −1) hasta x = 8 todo queda bajo el eje.']
+ ]},
+{n:11, g:{xr:[-3,3], yr:[-3,3],
+  segs:[{p:[[-1.8,-2.6],[-1,-1],[0,-2],[2,1],[2.6,1.9]],s:1,e:1}],
+  dots:[[-1,-1],[0,-2],[2,1]],
+  guides:[[-1,-1,-1,0],[-1,-1,0,-1],[2,1,2,0],[2,1,0,1]]},
+ items:[
+  ['a','$D_f$:','R','\\mathbb{R}','Flechas hacia ambos lados.'],
+  ['b','$A_f$:','[-2,∞[','[-2,\\,+\\infty[','Mínimo −2 en (0, −2); la flecha derecha sube sin límite.'],
+  ['c','$f(0)=$','-2','-2','Punto (0, −2).'],
+  ['d','$f(-1)=$','-1','-1','Punto (−1, −1).'],
+  ['e','$f$ creciente:',']-∞,-1[ u ]0,∞[',']-\\infty,\\,-1[\\,\\cup\\,]0,\\,+\\infty[','Sube hasta x = −1 y otra vez desde x = 0.',1],
+  ['f','$f$ decreciente:',']-1,0[',']-1,\\,0[','Baja de (−1, −1) a (0, −2).',1],
+  ['g','$f(x)>0$:',']4/3,∞[',']\\tfrac{4}{3},\\,+\\infty[','La recta por (0, −2) y (2, 1) sube 3 por cada 2 unidades: corta el eje x en x = 4/3.'],
+  ['h','$f(x)<0$:',']-∞,4/3[',']-\\infty,\\,\\tfrac{4}{3}[','Todo lo que está a la izquierda de x = 4/3 queda bajo el eje.']
+ ]},
+{n:12, g:{xr:[-3,3], yr:[-2,4],
+  segs:[{p:[[-1,2],[-2.8,2]],e:1},{p:[[-1,-1],[0,0]]},{p:[[1,2],[2.8,2]],e:1}],
+  dots:[[-1,2,1],[-1,-1],[0,0],[1,2]],
+  guides:[[-1,2,1,2],[-1,2,-1,-1],[1,2,1,0]]},
+ items:[
+  ['a','$D_f$:',']-∞,0] u [1,∞[',']-\\infty,\\,0]\\cup[1,\\,+\\infty[','Entre x = 0 y x = 1 no hay gráfica.'],
+  ['b','$A_f$:','[-1,0] u {2}','[-1,\\,0]\\cup\\{2\\}','Los rayos tienen altura 2; el segmento va de −1 a 0.'],
+  ['c','$f(1)=$','2','2','Punto relleno (1, 2).'],
+  ['d','$f(0)=$','0','0','Punto en el origen.'],
+  ['e','La imagen de $-1$:','-1','-1','En x = −1 el punto relleno es (−1, −1); (−1, 2) es abierto.'],
+  ['f','$f(x)>0$:',']-∞,-1[ u [1,∞[',']-\\infty,\\,-1[\\,\\cup\\,[1,\\,+\\infty[','Los rayos de altura 2: x < −1 y x ≥ 1.'],
+  ['g','$f(x)<0$:','[-1,0[','[-1,\\,0[','El segmento desde (−1, −1) hasta el origen, sin incluir x = 0.']
+ ]}
+];
+
+/* ======================= GRÁFICAS ======================= */
+function svgGraph(g,n){
+  const [x0,x1]=g.xr,[y0,y1]=g.yr, W=400, pad=20;
+  const u=(W-2*pad)/(x1-x0), H=(y1-y0)*u+2*pad;
+  const X=x=>+(pad+(x-x0)*u).toFixed(2), Y=y=>+(pad+(y1-y)*u).toFixed(2);
+  const mc='mc'+n, ma='ma'+n;
+  let s=`<svg viewBox="0 0 ${W} ${H.toFixed(1)}" role="img" aria-label="Gráfica ${n}">
+  <defs>
+   <marker id="${mc}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--curve)"/></marker>
+   <marker id="${ma}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--axis)"/></marker>
+  </defs>`;
+  for(let i=Math.ceil(x0);i<=Math.floor(x1);i++) s+=`<line x1="${X(i)}" y1="${Y(y1)}" x2="${X(i)}" y2="${Y(y0)}" style="stroke:var(--grid);stroke-width:1"/>`;
+  for(let j=Math.ceil(y0);j<=Math.floor(y1);j++) s+=`<line x1="${X(x0)}" y1="${Y(j)}" x2="${X(x1)}" y2="${Y(j)}" style="stroke:var(--grid);stroke-width:1"/>`;
+  s+=`<line x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}" marker-end="url(#${ma})" style="stroke:var(--axis);stroke-width:1.4"/>`;
+  s+=`<line x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}" marker-end="url(#${ma})" style="stroke:var(--axis);stroke-width:1.4"/>`;
+  s+=`<text x="${X(x1)-4}" y="${Y(0)-8}" text-anchor="end" style="fill:var(--axis);font-style:italic;font-size:15px">x</text>`;
+  s+=`<text x="${X(0)+8}" y="${Y(y1)+12}" style="fill:var(--axis);font-style:italic;font-size:15px">y</text>`;
+  const fs=u<28?11:12.5;
+  for(let i=Math.ceil(x0);i<x1;i++){ if(!i) continue;
+    s+=`<line x1="${X(i)}" y1="${Y(0)-3}" x2="${X(i)}" y2="${Y(0)+3}" style="stroke:var(--axis)"/>`;
+    s+=`<text x="${X(i)}" y="${Y(0)+fs+4}" text-anchor="middle" style="fill:var(--muted);font-size:${fs}px">${i<0?'−'+(-i):i}</text>`;}
+  for(let j=Math.ceil(y0);j<y1;j++){ if(!j) continue;
+    s+=`<line x1="${X(0)-3}" y1="${Y(j)}" x2="${X(0)+3}" y2="${Y(j)}" style="stroke:var(--axis)"/>`;
+    s+=`<text x="${X(0)-6}" y="${Y(j)+4}" text-anchor="end" style="fill:var(--muted);font-size:${fs}px">${j<0?'−'+(-j):j}</text>`;}
+  (g.guides||[]).forEach(([a,b,c,d])=>s+=`<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" style="stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4"/>`);
+  const cs=`style="fill:none;stroke:var(--curve);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round"`;
+  const mk=o=>(o.s?` marker-start="url(#${mc})"`:'')+(o.e?` marker-end="url(#${mc})"`:'');
+  (g.segs||[]).forEach(o=>s+=`<polyline points="${o.p.map(([x,y])=>X(x)+','+Y(y)).join(' ')}" ${cs}${mk(o)}/>`);
+  (g.fns||[]).forEach(o=>{const N=80,pts=[];for(let k=0;k<=N;k++){const x=o.a+(o.b-o.a)*k/N;pts.push(X(x)+','+Y(o.f(x)));}
+    s+=`<polyline points="${pts.join(' ')}" ${cs}${mk(o)}/>`;});
+  (g.dots||[]).forEach(([x,y,op])=>s+= op
+    ?`<circle cx="${X(x)}" cy="${Y(y)}" r="4.6" style="fill:var(--paper);stroke:var(--curve);stroke-width:2"/>`
+    :`<circle cx="${X(x)}" cy="${Y(y)}" r="4.6" style="fill:var(--curve)"/>`);
+  (g.labels||[]).forEach(([t,x,y])=>s+=`<text x="${X(x)}" y="${Y(y)}" style="fill:var(--curve);font-style:italic;font-weight:700;font-size:16px">${t}</text>`);
+  return s+'</svg>';
+}
+
+/* ======================= LECTOR DE CONJUNTOS ======================= */
+function num(t){
+  if(t==='∞') return Infinity; if(t==='-∞') return -Infinity;
+  const m=t.match(/^(-?)(\d+(?:\.\d+)?|\.\d+)(?:\/(\d+(?:\.\d+)?))?$/);
+  if(!m) return NaN;
+  let v=parseFloat(m[2]); if(m[3]) v/=parseFloat(m[3]); return m[1]?-v:v;
+}
+function parseSet(raw){
+  let s=raw.toLowerCase().replace(/\s+/g,'').replace(/[−–—]/g,'-')
+    .replace(/infinito|infinity|inf/g,'∞').replace(/\+∞/g,'∞').replace(/ℝ/g,'r')
+    .replace(/^[a-z]\([^)]*\)=/,'').replace(/^[xy](∈|=)/,'');
+  if(!s) return null;
+  if(['r','ir','reales','todoslosreales'].includes(s)) return [{a:-Infinity,b:Infinity,ai:false,bi:false}];
+  if(['∅','{}','vacio','vacío','ninguno','notiene','no'].includes(s)) return [];
+  const out=[];
+  for(const p of s.split(/∪|u|y/)){
+    if(!p) return null;
+    if(p==='r'){out.push({a:-Infinity,b:Infinity,ai:false,bi:false});continue;}
+    const m=p.match(/^([\[\]\(])(.+?),(.+)([\[\]\)])$/);
+    if(m){
+      const a=num(m[2]), b=num(m[3]);
+      if(isNaN(a)||isNaN(b)||a>b) return null;
+      out.push({a,b,ai:m[1]==='[',bi:m[4]===']'});
+    } else {
+      const q=p.replace(/^\{/,'').replace(/\}$/,'');
+      for(const t of q.split(/[,;]/)){ if(!t) continue; const v=num(t); if(!isFinite(v)) return null; out.push({a:v,b:v,ai:true,bi:true}); }
+    }
+  }
+  return out;
+}
+const EPS=0.03, near=(a,b)=>a===b||Math.abs(a-b)<EPS;
+function canon(list,loose){
+  let iv=list.map(o=>({...o}));
+  iv.forEach(o=>{ if(o.a===-Infinity)o.ai=false; if(o.b===Infinity)o.bi=false;
+    if(loose){ if(isFinite(o.a))o.ai=true; if(isFinite(o.b))o.bi=true; }});
+  iv=iv.filter(o=>o.a<o.b-EPS||(near(o.a,o.b)&&o.ai&&o.bi));
+  iv.forEach(o=>{ if(near(o.a,o.b)) o.b=o.a; });
+  iv.sort((p,q)=>p.a-q.a||(q.ai-p.ai));
+  const r=[];
+  for(const o of iv){
+    const c=r[r.length-1];
+    if(c && (o.a<c.b-EPS || (near(o.a,c.b)&&(o.ai||c.bi)))){
+      if(near(o.a,c.a)) c.ai=c.ai||o.ai;
+      if(o.b>c.b+EPS){c.b=o.b;c.bi=o.bi;} else if(near(o.b,c.b)) c.bi=c.bi||o.bi;
+    } else r.push(o);
+  }
+  return r;
+}
+function same(A,B){
+  if(A.length!==B.length) return false;
+  return A.every((o,i)=>near(o.a,B[i].a)&&near(o.b,B[i].b)&&o.ai===B[i].ai&&o.bi===B[i].bi);
+}
+
+/* ======================= OPCIONES DE RESPUESTA ======================= */
+const INF=Infinity;
+const SPECIAL={
+  '6d':{ok:'\\text{No se puede determinar}',bad:['2','3','4']},
+  '10b':{ok:'[-4,\\,-1]\\cup\\,]k,\\,+\\infty[',bad:['[-4,\\,-1]',']-\\infty,\\,8]','[-4,\\,+\\infty[']}
+};
+const cl=l=>canon(l,false);
+const isPts=l=>l.length>0&&l.every(o=>o.a===o.b);
+const P1=v=>[{a:v,b:v,ai:true,bi:true}];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function fmt(v){
+  if(v===INF) return '+\\infty'; if(v===-INF) return '-\\infty';
+  if(Number.isInteger(v)) return String(v);
+  for(let d=2;d<=6;d++){const n=Math.round(v*d); if(Math.abs(v*d-n)<1e-6) return (n<0?'-':'')+`\\tfrac{${Math.abs(n)}}{${d}}`;}
+  return v.toFixed(2);
+}
+function toTex(list,braces){
+  const c=cl(list);
+  if(!c.length) return '\\varnothing';
+  if(c.length===1&&c[0].a===-INF&&c[0].b===INF) return '\\mathbb{R}';
+  const pts=c.filter(o=>o.a===o.b), ivs=c.filter(o=>o.a!==o.b);
+  if(!ivs.length&&pts.length===1&&!braces) return fmt(pts[0].a);
+  const parts=ivs.map(o=>(o.ai?'\\mathopen{[}':'\\mathopen{]}')+fmt(o.a)+',\\,'+fmt(o.b)+(o.bi?'\\mathclose{]}':'\\mathclose{[}'));
+  if(pts.length) parts.push('\\{'+pts.map(o=>fmt(o.a)).join(',\\,')+'\\}');
+  return parts.join('\\cup\\,');
+}
+function complement(list){
+  const c=cl(list), r=[]; let p=-INF,pI=false;
+  for(const o of c){ r.push({a:p,ai:pI,b:o.a,bi:!o.ai}); p=o.b; pI=!o.bi; }
+  r.push({a:p,ai:pI,b:INF,bi:false});
+  return cl(r);
+}
+function muts(A){
+  const out=[], c=cl(A), rep=(i,o)=>c.map((p,j)=>j===i?o:p);
+  c.forEach((o,i)=>{
+    if(o.a===o.b) return;
+    if(isFinite(o.a)) out.push(rep(i,{...o,ai:!o.ai}));
+    if(isFinite(o.b)) out.push(rep(i,{...o,bi:!o.bi}));
+    if(isFinite(o.a)&&isFinite(o.b)){ out.push(rep(i,{...o,ai:!o.ai,bi:!o.bi})); out.push(rep(i,{...o,b:o.b+1})); out.push(rep(i,{...o,a:o.a-1})); }
+    if(o.a===-INF&&isFinite(o.b)){ out.push(rep(i,{a:o.b,ai:o.bi,b:INF,bi:false})); out.push(rep(i,{...o,b:o.b+1})); out.push(rep(i,{...o,b:o.b-1})); }
+    if(o.b===INF&&isFinite(o.a)){ out.push(rep(i,{...o,a:o.a+1})); out.push(rep(i,{...o,a:o.a-1})); }
+    if(o.b===INF&&isFinite(o.a)) out.push(rep(i,{a:-INF,ai:false,b:o.a,bi:o.ai}));
+  });
+  if(c.length>1) c.forEach((_,i)=>out.push(c.filter((__,j)=>j!==i)));
+  out.push(complement(c));
+  return out;
+}
+function promptVal(it){
+  const m=it[1].match(/\((-?\d+)\)|\$(-?\d+)\$/);
+  return m?parseInt(m[1]??m[2]):null;
+}
+function buildOptions(pr,it){
+  const id=pr.n+it[0];
+  if(SPECIAL[id]) return shuffle([{tex:SPECIAL[id].ok,ok:true},...SPECIAL[id].bad.map(t=>({tex:t,ok:false}))]);
+  const loose=!!it[5], A=cl(parseSet(it[2]));
+  const others=pr.items.filter(o=>o!==it&&o[2]!==null).map(o=>cl(parseSet(o[2])));
+  const pri=[],sec=[];
+  if(isPts(A)){
+    const xv=promptVal(it);
+    if(A.length===1){
+      const v=A[0].a;
+      if(xv!==null) pri.push(P1(xv));
+      others.filter(o=>isPts(o)&&o.length===1).forEach(o=>pri.push(o));
+      [v+1,v-1,-v,v+2,v-2].forEach(w=>sec.push(P1(w)));
+    } else {
+      A.forEach((_,i)=>pri.push(A.filter((__,j)=>j!==i)));
+      if(xv!==null) sec.push(P1(xv));
+      others.filter(isPts).forEach(o=>sec.push(o));
+      sec.push(A.map(o=>({...o,a:o.a+1,b:o.a+1})));
+    }
+  } else {
+    others.filter(o=>o.length&&!isPts(o)).forEach(o=>pri.push(o));
+    if(A.length===1&&A[0].a===-INF&&A[0].b===INF){
+      const [x0,x1]=pr.g.xr;
+      [[{a:-INF,ai:false,b:0,bi:false},{a:0,ai:false,b:INF,bi:false}],[{a:0,ai:true,b:INF,bi:false}],
+       [{a:-INF,ai:false,b:0,bi:true}],[{a:x0+1,ai:true,b:x1-1,bi:true}]].forEach(c=>pri.push(c));
+    }
+    muts(A).forEach(m=>sec.push(m));
+  }
+  shuffle(pri); shuffle(sec);
+  const order=[]; while(pri.length||sec.length){ if(sec.length) order.push(sec.shift()); if(pri.length) order.push(pri.shift()); }
+  const chosen=[A];
+  for(const c of order){
+    if(chosen.length===4) break;
+    if(!c.length) continue;
+    if(chosen.some(x=>same(canon(x,loose),canon(c,loose)))) continue;
+    chosen.push(cl(c));
+  }
+  let k=1;
+  while(chosen.length<4){ const d=[-2,-1,1,2][Math.floor(Math.random()*4)];
+    const c=isPts(A)?P1(Math.round(Math.random()*10-5)):cl(A.map(o=>({...o,a:isFinite(o.a)?o.a+d:o.a,b:isFinite(o.b)?o.b+d:o.b}))); if(!chosen.some(x=>same(cl(x),c))) chosen.push(c); if(++k>50) break; }
+  const br=!isPts(A); return shuffle(chosen.map((c,i)=>({tex:toTex(c,br),ok:i===0})));
+}
+function qText(pr,it){
+  const q=it[1].replace(/:\s*$/,'').trim();
+  if(/^\$D_/.test(q)) return '¿Cuál es el dominio '+q+'?';
+  if(/^\$A_/.test(q)) return '¿Cuál es el ámbito '+q+'?';
+  if(/=\$$/.test(q)) return '¿Cuánto es '+q.replace(/=\$$/,'$')+'?';
+  if(/^La (pre)?imagen/.test(q)) return '¿Cuál es l'+q.slice(1)+'?';
+  if(/^\$[fh]\(x\)/.test(q)) return '¿Para qué valores de $x$ se cumple '+q+'?';
+  if(/creciente|decreciente/.test(q)) return '¿Dónde es '+q+'?';
+  if(/cero/.test(q)) return '¿Cuál es un cero de la función?';
+  return q+'…';
+}
+/* ======================= CONFIGURACIÓN ======================= */
+const TIMES={3:8*60,4:12*60,5:15*60};   // segundos según el tamaño del cartón
+let DURATION=TIMES[3];
+/* Para guardar resultados en una hoja de Google, pegue aquí la URL de su Apps Script (deje vacío para no enviar). */
+const RESULTS_URL='';
+
+/* ======================= BANCO ======================= */
+const $=id=>document.getElementById(id);
+const POOL=[],BYKEY={};
+P.forEach(pr=>pr.items.forEach(it=>{
+  if(it[2]===null) return;
+  const key=toTex(cl(parseSet(it[2])));
+  if(!BYKEY[key]){BYKEY[key]={key,qs:[]};POOL.push(BYKEY[key]);}
+  BYKEY[key].qs.push({pr,it});
+}));
+function tex(el,t){try{katex.render(t,el,{throwOnError:false});}catch(e){el.textContent=t;}}
+function sizeClass(t){
+  const n=t.replace(/\\math(open|close)\{(.)\}/g,'$2').replace(/\\,/g,'').replace(/\\(mathbb|tfrac|infty|cup)/g,'x').replace(/[\\{}]/g,'').length;
+  return n<=3?'':n<=8?'md':n<=12?'sm':'xs';
+}
+function category(it){
+  const q=it[1];
+  if(/^\$D_/.test(q)) return 'Dominio';
+  if(/^\$A_/.test(q)) return 'Ámbito';
+  if(/creciente|decreciente/.test(q)) return 'Monotonía';
+  if(/\(x\)\s*[<>]/.test(q)) return 'Signo de la función';
+  if(/cero/.test(q)) return 'Ceros';
+  if(/preimagen de|es imagen de/.test(q)) return 'Preimágenes';
+  return 'Imágenes';
+}
+const PATN={row:'Una línea horizontal',col:'Una línea vertical',diag:'Una diagonal',corners:'Las cuatro esquinas',full:'Cartón lleno'};
+function patSets(p,n){
+  const R=[...Array(n).keys()];
+  return {row:R.map(r=>R.map(c=>r*n+c)), col:R.map(c=>R.map(r=>r*n+c)),
+    diag:[R.map(i=>i*n+i),R.map(i=>i*n+(n-1-i))], corners:[[0,n-1,n*(n-1),n*n-1]], full:[[...Array(n*n).keys()]]}[p];
+}
+const PAT={
+  row:{goal:'Complete cualquier fila.'}, col:{goal:'Complete cualquier columna.'},
+  diag:{goal:'Complete cualquiera de las dos diagonales.'},
+  corners:{goal:'Marque las cuatro esquinas (casillas con borde amarillo).',show:true},
+  full:{goal:'Marque todas las casillas del cartón.'}
+};
+Object.keys(PAT).forEach(k=>PAT[k].name=PATN[k]);
+
+/* ======================= ESTADO ======================= */
+let G=null, tick=null, soundOn=true, AC=null;
+function tone(fs,d,type){ if(!soundOn) return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    fs.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type||'sine';o.frequency.value=f;const t=AC.currentTime+i*d;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);});}catch(e){} }
+const fmtTime=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+function view(v){['startView','playView','reportView'].forEach(x=>$(x).hidden=x!==v);$('pauseBtn').hidden=v!=='playView';window.scrollTo(0,0);}
+
+/* ======================= INICIO ======================= */
+$('helpBtn').onclick=()=>$('help').showModal(); $('helpClose').onclick=()=>$('help').close();
+$('soundBtn').onclick=()=>{soundOn=!soundOn;$('soundBtn').setAttribute('aria-pressed',soundOn);$('soundBtn').firstChild.textContent=soundOn?'🔊':'🔇';};
+$('fsBtn').onclick=()=>{ try{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }catch(e){} };
+$('fSize').onchange=()=>{ $('clock').textContent='⏱ '+fmtTime(TIMES[+$('fSize').value]); };
+try{ const last=JSON.parse(localStorage.getItem('bingo-fun-datos')||'{}'); if(last.group)$('fGroup').value=last.group; if(last.code)$('fCode').value=last.code; }catch(e){}
+
+$('startBtn').onclick=()=>{
+  const group=$('fGroup').value.trim(), name=$('fName').value.trim(), code=$('fCode').value.trim();
+  const err=$('fErr');
+  if(!group||!name){err.textContent='Escriba el grupo y el nombre para comenzar.';err.hidden=false;return;}
+  err.hidden=true;
+  try{localStorage.setItem('bingo-fun-datos',JSON.stringify({group,code}));}catch(e){}
+  startGame({group,name,code,pattern:$('fPattern').value,size:+$('fSize').value});
+};
+
+function startGame(info){
+  const n=info.size, free=n===5?12:-1;
+  DURATION=TIMES[n];
+  const keys=shuffle(POOL.map(b=>b.key)).slice(0,free>=0?n*n-1:n*n);
+  if(free>=0) keys.splice(free,0,null);
+  const qs=shuffle(keys.map((k,i)=>{ if(k===null) return null; const b=BYKEY[k]; const q=b.qs[Math.floor(Math.random()*b.qs.length)]; return {cell:i,key:k,pr:q.pr,it:q.it}; }).filter(Boolean));
+  G={info,n,sets:patSets(info.pattern,n),keys,qs,qi:0,tries:0,state:Array(n*n).fill(''),sel:null,left:DURATION,score:0,attempts:0,correct:0,log:[],paused:false,over:false,resolved:false,won:false,t0:Date.now()};
+  if(free>=0) G.state[free]='marked';
+  ['cells','rCard'].forEach(id=>{$(id).className='cells n'+n;$(id).style.setProperty('--n',n);});
+  $('cardTitle').textContent='Cartón de '+info.name;
+  $('goal').innerHTML='<b>Objetivo:</b> '+PAT[info.pattern].name+'. '+PAT[info.pattern].goal;
+  $('hist').innerHTML=''; $('histEmpty').hidden=false;
+  view('playView'); drawCard(); showQ(); updateHud();
+  clearInterval(tick); tick=setInterval(()=>{ if(G.paused||G.over) return; G.left--; updateHud(); if(G.left<=0) endGame('time'); },1000);
+}
+
+/* ======================= CARTÓN ======================= */
+function drawCard(){
+  const box=$('cells'); box.innerHTML='';
+  const tg=PAT[G.info.pattern].show?new Set(G.sets[0]):null;
+  G.keys.forEach((k,i)=>{
+    const c=document.createElement('button');
+    if(k===null){c.className='cell free';c.textContent='LIBRE';c.disabled=true;}
+    else{
+      c.className='cell '+sizeClass(k)+(G.state[i]?' '+G.state[i]:'')+(tg&&tg.has(i)&&!G.state[i]?' target':'')+(G.sel===i?' sel':'');
+      const v=document.createElement('span');v.className='v';tex(v,k);c.appendChild(v);
+      c.disabled=!!G.state[i]||G.resolved;
+      c.setAttribute('aria-label','Casilla '+(i+1));
+      c.onclick=()=>select(i);
+    }
+    box.appendChild(c);
+  });
+}
+function select(i){
+  if(G.resolved||G.state[i]) return;
+  G.sel=i; drawCard();
+  const ch=$('chosen'); ch.classList.add('has'); ch.innerHTML='Su respuesta: <span></span>'; tex(ch.querySelector('span'),G.keys[i]);
+  $('answerBtn').disabled=false;
+}
+function clearSel(){ G.sel=null; const ch=$('chosen'); ch.classList.remove('has'); ch.textContent='Toque en el cartón la casilla con la respuesta'; $('answerBtn').disabled=true; }
+
+/* ======================= PREGUNTAS ======================= */
+function showQ(){
+  const q=G.qs[G.qi]; G.tries=0; G.resolved=false; clearSel();
+  $('exNum').textContent=`Ejercicio ${G.qi+1}`;
+  $('exCat').textContent=category(q.it);
+  $('exGraph').textContent='Gráfica '+q.pr.n;
+  $('exSvg').innerHTML=svgGraph(q.pr.g,'x'+G.qi);
+  $('exQ').textContent=qText(q.pr,q.it);
+  if(window.renderMathInElement) renderMathInElement($('exQ'),{delimiters:[{left:'$',right:'$',display:false}],throwOnError:false});
+  $('fb').hidden=true; drawCard();
+  if(innerWidth<900&&G.qi>0) window.scrollTo({top:0,behavior:'smooth'});
+}
+$('answerBtn').onclick=()=>{
+  if(G.sel===null||G.resolved||G.over) return;
+  const q=G.qs[G.qi], ok=G.sel===q.cell; G.attempts++; G.tries++;
+  const fb=$('fb'); fb.hidden=false;
+  if(ok){
+    const pts=G.tries===1?10:5; G.score+=pts; G.correct++;
+    G.state[q.cell]='marked'; G.resolved=true; clearSel();
+    fb.className='fb ok'; fb.innerHTML=`<b>✅ ¡Correcto! +${pts}</b><p></p>`;
+    fb.querySelector('p').textContent=q.it[4];
+    tone([660,880],.09); log(q,true);
+  } else if(G.tries===1){
+    fb.className='fb try'; fb.innerHTML='<b>🤔 Esa no es. Le queda un intento.</b><p>Revise la gráfica y elija otra casilla.</p>';
+    tone([300],.12,'triangle'); clearSel(); drawCard(); updateHud(); if(innerWidth<900) fb.scrollIntoView({block:'center',behavior:'smooth'}); return;
+  } else {
+    G.state[q.cell]='lost'; G.resolved=true; clearSel();
+    fb.className='fb no'; fb.innerHTML='<b>❌ Incorrecto. La casilla correcta se pierde.</b><p></p>';
+    fb.querySelector('p').textContent='Respuesta: '; const s=document.createElement('span'); tex(s,q.key); fb.querySelector('p').appendChild(s);
+    fb.querySelector('p').append(' — '+q.it[4]);
+    tone([220,180],.14,'triangle'); log(q,false);
+  }
+  drawCard();
+  if(!ok){ const el=$('cells').children[q.cell]; el.classList.add('flash'); }
+  updateHud();
+  if(checkWin()) return winGame();
+  if(!feasible()) return endGame('impossible');
+  if(G.qi>=G.qs.length-1) return endGame('done');
+  const b=document.createElement('button'); b.className='btn primary'; b.textContent='Siguiente ejercicio'; b.onclick=()=>{G.qi++;showQ();};
+  fb.appendChild(b); b.focus({preventScroll:true});
+  if(innerWidth<900) fb.scrollIntoView({block:'center',behavior:'smooth'});
+};
+function log(q,ok){
+  $('histEmpty').hidden=true;
+  const li=document.createElement('li'); li.innerHTML=`${ok?'✅':'❌'} Gráfica ${q.pr.n}, ${category(q.it).toLowerCase()}: <span></span>`;
+  tex(li.querySelector('span'),q.key); $('hist').prepend(li);
+  G.log.push({g:q.pr.n,cat:category(q.it),q:qText(q.pr,q.it),key:q.key,ok,tries:G.tries});
+}
+const done=()=>new Set(G.state.map((s,i)=>s==='marked'?i:-1).filter(i=>i>=0));
+function checkWin(){ const d=done(); return G.sets.some(s=>s.every(i=>d.has(i))); }
+function feasible(){ return G.sets.some(s=>s.every(i=>G.state[i]!=='lost')); }
+function updateHud(){
+  $('clock').textContent='⏱ '+fmtTime(G?G.left:DURATION); $('clock').classList.toggle('low',!!G&&G.left<=60&&!G.over);
+  $('pts').textContent='⭐ '+(G?G.score:0);
+  $('acc').textContent='✅ '+(G&&G.attempts?Math.round(100*G.correct/G.attempts):0)+'%';
+}
+
+/* ======================= PAUSA / FIN ======================= */
+$('pauseBtn').onclick=()=>{ if(!G||G.over) return; G.paused=true; $('pauseOv').hidden=false; $('resumeBtn').focus(); };
+$('resumeBtn').onclick=()=>{ G.paused=false; $('pauseOv').hidden=true; };
+$('finishBtn').onclick=()=>{ if(confirm('¿Finalizar la actividad ahora?')) endGame('manual'); };
+
+function winGame(){
+  G.won=true; G.score+=50; const bonus=Math.floor(G.left/10); G.score+=bonus; G.over=true; clearInterval(tick); updateHud();
+  $('winMsg').textContent=`Completó «${PAT[G.info.pattern].name}». Bono: 50 puntos por el bingo y ${bonus} por el tiempo restante.`;
+  $('winOv').hidden=false; $('toReport').focus();
+  tone([523,659,784,1047],.13); confetti();
+}
+$('toReport').onclick=()=>{ $('winOv').hidden=true; report(); };
+function endGame(reason){ if(G.over&&reason!=='won') { if(!$('reportView').hidden) return; } G.over=true; G.reason=reason; clearInterval(tick); updateHud();
+  if(reason==='impossible'){ $('fb').insertAdjacentHTML('beforeend','<p><b>Ya no es posible completar el patrón.</b></p>'); setTimeout(report,2200); }
+  else report(); }
+
+function report(){
+  view('reportView');
+  const used=DURATION-G.left, d=done(); if(G.n===5) d.delete(12);
+  const i=G.info;
+  $('who').innerHTML=`<b></b><br><span></span>`;
+  $('who').querySelector('b').textContent=i.name;
+  $('who').querySelector('span').textContent=`Grupo ${i.group}${i.code?', sesión '+i.code:''}. ${new Date().toLocaleDateString('es-CR')} ${new Date().toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit'})}. Cartón ${G.n} × ${G.n}, ${PAT[i.pattern].name.toLowerCase()}.`;
+  const r=$('result');
+  const msg={time:'⏱ Se terminó el tiempo sin completar el patrón.',impossible:'El patrón ya no se podía completar.',manual:'Actividad finalizada antes de completar el patrón.',done:'Se respondieron todas las preguntas.'};
+  r.className='result '+(G.won?'win':'lose'); r.textContent=G.won?'🎉 ¡Bingo logrado!':msg[G.reason]||'';
+  $('rPts').textContent=G.score; $('rAcc').textContent=(G.attempts?Math.round(100*G.correct/G.attempts):0)+'%';
+  $('rOk').textContent=G.correct; $('rTime').textContent=fmtTime(used); $('rCells').textContent=d.size;
+  const rc=$('rCard'); rc.innerHTML='';
+  G.keys.forEach((k,j)=>{const c=document.createElement('div');
+    if(k===null){c.className='cell free';c.textContent='LIBRE';}
+    else{c.className='cell '+sizeClass(k)+(G.state[j]?' '+G.state[j]:'');const v=document.createElement('span');v.className='v';tex(v,k);c.appendChild(v);}
+    rc.appendChild(c);});
+  const ol=$('rDetail'); ol.innerHTML='';
+  G.log.forEach(e=>{const li=document.createElement('li');li.innerHTML=`${e.ok?'✅':'❌'} <b>Gráfica ${e.g}.</b> <span class="qq"></span> Respuesta: <span class="a"></span>${e.ok&&e.tries===2?' (segundo intento)':''}`;
+    li.querySelector('.qq').textContent=e.q; tex(li.querySelector('.a'),e.key); ol.appendChild(li);});
+  if(window.renderMathInElement) renderMathInElement(ol,{delimiters:[{left:'$',right:'$',display:false}],throwOnError:false});
+  $('rDetail').parentElement.hidden=!G.log.length;
+  sendResult(used,d.size);
+}
+function sendResult(used,cells){
+  const m=$('saveMsg');
+  if(!RESULTS_URL){ m.hidden=true; return; }
+  m.hidden=false; m.textContent='Guardando el resultado…';
+  const data={fecha:new Date().toISOString(),grupo:G.info.group,codigo:G.info.code,nombre:G.info.name,tipo:PAT[G.info.pattern].name,carton:G.n+'x'+G.n,
+    bingo:G.won?'Sí':'No',puntos:G.score,precision:G.attempts?Math.round(100*G.correct/G.attempts):0,correctas:G.correct,intentos:G.attempts,tiempo:fmtTime(used),casillas:cells};
+  fetch(RESULTS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)})
+    .then(()=>m.textContent='✔ Resultado enviado.').catch(()=>m.textContent='No se pudo enviar el resultado. Imprima este reporte como respaldo.');
+}
+$('againBtn').onclick=()=>{ $('fName').focus(); view('startView'); updateHud(); $('clock').textContent='⏱ '+fmtTime(TIMES[+$('fSize').value]); $('pts').textContent='⭐ 0'; $('acc').textContent='✅ 0%'; };
+$('printBtn').onclick=()=>window.print();
+
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const box=document.createElement('div'); box.className='confetti'; const cols=['#B3246B','#E0A91B','#2F6FDB','#1C8354','#FF74B2'];
+  for(let i=0;i<100;i++){const p=document.createElement('i');p.style.left=Math.random()*100+'vw';p.style.background=cols[i%5];
+    p.style.animationDuration=(2.2+Math.random()*1.8)+'s';p.style.animationDelay=(Math.random()*.6)+'s';box.appendChild(p);}
+  document.body.appendChild(box); setTimeout(()=>box.remove(),5000);
+}
+window.addEventListener('beforeunload',e=>{ if(G&&!G.over){e.preventDefault();e.returnValue='';} });
+</script>
+</body>
+</html>
